@@ -5,18 +5,23 @@ and MQTT message transfering protocol.
 
 import yaml
 import time
-import FLC_command
+import os
+from sys import platform
 import tkinter as tk
 import tkinter.messagebox as mbox
 import customtkinter as ctk
 from sys import platform
 import paho.mqtt.client as mqtt_client
 import netifaces as ni
+import FLC_command
 
 
 #
 #  GLOBAL VARIABLES
 #
+
+if os.environ.get('DISPLAY','') == '':
+    os.environ.__setitem__('DISPLAY', ':0.0')  # sets display environment variable to 0.0
 
 start_time = time.time()
 alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
@@ -38,28 +43,38 @@ client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
 #
 # APPLICATION 
 #
+def connect_to_broker(client: mqtt_client):
+    ni.ifaddresses('eth0')
+    ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
 
-ni.ifaddresses('eth0')
-ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+    if ip == broker:
+        if platform == 'linux':
+            os.system('mosquitto -c /etc/mosquitto/mosquitto.conf')
+        else: 
+            pass
 
-# if ip == broker
+        while True:
+            try:
+                client.connect(broker, port)
+                break
+            except:
+                print("Can't connect to the broker.")
 
-while True:
-    try:
-        client.connect(broker, port)
-        break
-    except:
-        print("Can't connect to the broker.")
+    return 0
 
-def subscribe(client: mqtt_client):
+def subscribe(client: mqtt_client, topic='+'):
     def on_message(client, userdata, msg):
-        try:
-            input_data = msg.payload.decode()
-            if msg.topic == 'data':
-                key = input_data[0:5]
-            pass
-        except:
-            pass
+        if msg.topic == "ID1pub":
+            FLC_command.on_message_to_pub(client=client, message=msg)
+        elif msg.topic == "debug":
+            try:
+                print(f'Debug message: {msg.payload.decode()}')
+            except:
+                print(f"Error: Message payload cannot be decoded. [ {msg.payload} ]")
+               
+
+    client.subscribe(topic)
+    client.on_message = on_message
     return
 
 
@@ -536,6 +551,13 @@ def scrollfunc(height, width):
     canvas.configure(scrollregion=canvas.bbox("all"),width=width,height=height)
 
 if __name__ == '__main__':
+
+    connect_to_broker(client)
+
+    if client.is_connected():
+        client.publish('test', "Raspberry Pi is alive.", qos=0)
+        client.loop_start()
+
     root = ctk.CTk()
     root.grid_rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
