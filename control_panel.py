@@ -587,7 +587,7 @@ if __name__ == '__main__':
     serial_settings = FLC_command.serial_settings
     # arduino = FLC_command.arduino
     xstep = 0
-    with open("/home/raspberry/Documents/python_flc_interface/port_settings.yaml", "r") as file:
+    with open("/home/raspberry/Documents/MQTT project/python_flc_interface/port_settings.yaml", "r") as file:
         ymldata = yaml.load(file, Loader=yaml.FullLoader)
     for key, value in ymldata.items():
         if key.startswith('port'):
