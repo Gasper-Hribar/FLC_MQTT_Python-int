@@ -51,7 +51,8 @@ def connect_to_broker(client: mqtt_client):
 
     if ip == broker:
         if platform == 'linux':
-            os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
+#           os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
+            pass
         else: 
             pass
 
@@ -586,7 +587,7 @@ if __name__ == '__main__':
     serial_settings = FLC_command.serial_settings
     # arduino = FLC_command.arduino
     xstep = 0
-    with open("port_settings.yaml", "r") as file:
+    with open("/home/raspberry/Documents/python_flc_interface/port_settings.yaml", "r") as file:
         ymldata = yaml.load(file, Loader=yaml.FullLoader)
     for key, value in ymldata.items():
         if key.startswith('port'):

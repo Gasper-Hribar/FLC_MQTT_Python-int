@@ -463,7 +463,7 @@ else:
 if __name__=="__main__":
     
     ports = {}
-    with open("port_settings.yaml", "r") as file:
+    with open("/home/raspberry/Documents/python_flc_interface/port_settings.yaml", "r") as file:
         data = yaml.load(file, Loader=yaml.FullLoader)
     for key, value in data.items():
         if key.startswith('port'):
