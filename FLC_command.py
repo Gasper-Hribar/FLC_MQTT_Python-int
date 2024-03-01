@@ -36,27 +36,24 @@ read_values = {
 # APPLICATION 
 #
 
-def subscribe_mqtt(client: mqtt_client):
-    def on_message(client, userdata, message):
-        try:
-            if message.topic == "ID1pub":
-                global comms_end_flag
-                if message.payload.decode() == transmit_ended_msg:
-                    comms_end_flag = 1
-                    return 0
-                else:
-                    comms_end_flag = 0
-                    msg = message.payload.decode()
-                    key = msg[0:5]
-                    read_values[key] = msg[6:]
-        except:
-            comms_end_flag = -1
-            print(f"Error: Message payload cannot be decoded. [ {message.payload} ]")
-            return -1
-    
-    client.subscribe(topic)
-    client.on_message = on_message
-    return
+
+def on_message_to_pub(client, userdata, message):
+    try:
+        if message.topic == "ID1pub":
+            global comms_end_flag
+            if message.payload.decode() == transmit_ended_msg:
+                comms_end_flag = 1
+                return 0
+            else:
+                comms_end_flag = 0
+                msg = message.payload.decode()
+                key = msg[0:5]
+                read_values[key] = msg[6:]
+    except:
+        comms_end_flag = -1
+        print(f"Error: Message payload cannot be decoded. [ {message.payload} ]")
+        return -1
+
 
 @dataclass
 class ChSetting:
