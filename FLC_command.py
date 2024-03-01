@@ -1,3 +1,5 @@
+#!/usr/local/lib/python3.11
+
 from sys import platform
 import yaml
 from dataclasses import dataclass, field

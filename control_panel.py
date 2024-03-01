@@ -1,3 +1,5 @@
+#!/usr/local/lib/python3.11
+
 """
 Graphical user interface for FLC Interface communicator for Raspberry Pi using ethernet connection
 and MQTT message transfering protocol. 
@@ -32,7 +34,7 @@ ADCresolution = 65535
 """ MQTT related constants"""
 
 broker = '192.168.1.1'
-port = 1883
+broker_port = 1883
 topic = "+"
 client_id = "IDpython"
 
@@ -49,16 +51,16 @@ def connect_to_broker(client: mqtt_client):
 
     if ip == broker:
         if platform == 'linux':
-            os.system('mosquitto -c /etc/mosquitto/mosquitto.conf')
+            os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
         else: 
             pass
 
-        while True:
-            try:
-                client.connect(broker, port)
-                break
-            except:
-                print("Can't connect to the broker.")
+#       while True:
+#           try:
+        client.connect(broker, broker_port)
+#               break
+#           except:
+#               print("Can't connect to the broker.")
 
     return 0
 
