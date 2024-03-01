@@ -7,9 +7,11 @@ import yaml
 import time
 import FLC_command
 import tkinter as tk
+import tkinter.messagebox as mbox
 import customtkinter as ctk
 from sys import platform
 import paho.mqtt.client as mqtt_client
+import netifaces as ni
 
 
 #
@@ -37,6 +39,10 @@ client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
 # APPLICATION 
 #
 
+ni.ifaddresses('eth0')
+ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+
+# if ip == broker
 
 while True:
     try:
