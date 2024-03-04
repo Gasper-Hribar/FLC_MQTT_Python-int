@@ -435,20 +435,20 @@ class FLC_interface:
     def read_all(self, portN:int, gain:int):
         string_to_send = f'p{portN}rg{gain}'
         self.write(string_to_send)
-        result = self.read()
-        return result
+        result, flag = self.read()
+        return (result, flag)
 
     def read_chips(self, portN:int, readN:int):
         string_to_send = f'p{portN}r{readN}'
         self.write(string_to_send)
-        result = self.read()
-        return result
+        result, flag = self.read()
+        return (result, flag)
 
     def read_ADC(self, portN:int, gain:int):
         string_to_send = f'p{portN}r1g{gain}'
         self.write(string_to_send)
-        result = self.read()
-        return result
+        result, flag = self.read()
+        return (result, flag)
     
 if platform == 'linux':
     serial_settings = SerialSettings(port='/dev/ttyACM0')
