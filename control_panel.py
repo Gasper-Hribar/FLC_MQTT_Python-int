@@ -9,6 +9,7 @@ import yaml
 import time
 import os
 from sys import platform
+import numpy as np
 import tkinter as tk
 import tkinter.messagebox as mbox
 import customtkinter as ctk
@@ -22,14 +23,32 @@ import FLC_command
 #  GLOBAL VARIABLES
 #
 
+""" General constants """
+
 if os.environ.get('DISPLAY','') == '':
     os.environ.__setitem__('DISPLAY', ':0.0')  # sets display environment variable to 0.0
+
+PROCESS_PASSED = 0
+PROCESS_FAILED = -1
+    
+""" FLC interface related constants """
 
 start_time = time.time()
 alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
 chipnames = {'mcp': 0, 'ADD1': 2, 'ADD3': 4, 'ADD4': 5}
 ADDresolution = 4095
 ADCresolution = 65535
+
+read_values_keys = ['ADC0R', 'ADD1R', 'ADD3R', 'ADD4R', 'MCP0R', 'ADD1D', 'ADD3D', 'ADD4D']
+
+zero_values = {'ADC0R':[0 ,0, 0, 0, 0, 0, 0, 0],
+                'ADD1R':[0 ,0, 0, 0, 0, 0, 0, 0],
+                'ADD3R':[0 ,0, 0, 0, 0, 0, 0, 0], 
+                'ADD4R':[0 ,0, 0, 0, 0, 0, 0, 0], 
+                'MCP0R':0, 
+                'ADD1D':0, 
+                'ADD3D':0, 
+                'ADD4D':0}
 
 """ MQTT related constants"""
 
@@ -38,7 +57,6 @@ broker_port = 1883
 topic = "+"
 client_id = "IDpython"
 
-read_values_keys = ['ADC0R', 'ADD1R', 'ADD3R', 'ADD4R', 'MCP0R', 'ADD1D', 'ADD3D', 'ADD4D']
 
 client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
 
@@ -128,10 +146,14 @@ def convert_read_val(readList):
 
 def read_fun(flc, adc_range, port_settings):
     gain = get_gain(adc_range['LTC'])
-    readData = flc.read_all(port_settings.portN, gain)
-
-    return [readData[key] for key in read_values_keys]
-
+    readData, flag = flc.read_all(port_settings.portN, gain)
+    if flag != PROCESS_FAILED:
+        return readData
+    else:
+        print("Process FAILED: read_fun().")
+        print(readData, "\n")
+        return zero_values
+    
     """ Arduino based functions. """
     # sorted = sort_read_values(readData)
     # ADC_read = []
@@ -240,7 +262,9 @@ class SwitchButton(ctk.CTkRadioButton):
 
     def digRead(self, *args):
         if args == ():
-            ADC_read, ADD1_read2, ADD3_read2, ADD4_read2, MCPdig, ADD1dig, ADD3dig, ADD4dig = self.init_read
+            readData = self.init_read
+            if readData != PROCESS_FAILED:
+                ADC_read, ADD1_read2, ADD3_read2, ADD4_read2, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
         else:
             MCPdig, ADD1dig, ADD3dig, ADD4dig = args
         if self.chipname == 'mcp':
@@ -292,7 +316,9 @@ class LabelEntry:
 
     def read(self, *args):
         if args == ():
-            ADC_read, ADD1_read, ADD3_read, ADD4_read, MCPdig, ADD1dig, ADD3dig, ADD4dig = self.init_read
+            readData = self.init_read
+            if readData != PROCESS_FAILED:
+                ADC_read, ADD1_read2, ADD3_read2, ADD4_read2, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
         else:
             ADC_read, ADD1_read, ADD3_read, ADD4_read = args
         if self.chipname == 'adc':
@@ -536,7 +562,9 @@ class port():
                     print('Unknown function')
     
     def update_fun(self):
-        ADC_read, ADD1_read, ADD3_read, ADD4_read, MCPdig, ADD1dig, ADD3dig, ADD4dig = read_fun(self.flc, self.adc_range, self.port_settings)
+        readData = read_fun(self.flc, self.adc_range, self.port_settings)
+        if readData != PROCESS_FAILED:
+            ADC_read, ADD1_read, ADD3_read, ADD4_read, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
         for box in self.readingBoxes:
             box.update(ADC_read, ADD1_read, ADD3_read, ADD4_read)
         for digitalButton in self.digitalButtons:

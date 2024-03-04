@@ -45,7 +45,7 @@ def on_message_to_pub(client, userdata, message):
             global comms_end_flag
             if message.payload.decode() == transmit_ended_msg:
                 comms_end_flag = 1
-                return 0
+                return (read_values, 0)
             else:
                 comms_end_flag = 0
                 msg = message.payload.decode()
@@ -53,8 +53,7 @@ def on_message_to_pub(client, userdata, message):
                 read_values[key] = msg[6:]
     except:
         comms_end_flag = -1
-        print(f"Error: Message payload cannot be decoded. [ {message.payload} ]")
-        return -1
+        return (f"Error: Message payload cannot be decoded. [ {message.payload} ]", -1)
 
 
 @dataclass
@@ -402,9 +401,9 @@ class FLC_interface:
     def read(self):
         stime = time.time()
 
-        while comms_end_flag != 1: 
-            if time.time() - stime > 1:
-                return -1
+        # while comms_end_flag != 1: 
+        #     if time.time() - stime > 1:
+        #         return -1
         
         if comms_end_flag == 1:
             for key, val in read_values.items():
