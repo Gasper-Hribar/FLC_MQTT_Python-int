@@ -57,36 +57,46 @@ broker_port = 1883
 topic = "+"
 client_id = "IDpython"
 
-
 client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
 
 #
-# APPLICATION 
+# APPLICATON 
 #
+
+
+def mqtt_connected():
+    print("connected")
+    return
+
 def connect_to_broker(client: mqtt_client):
     ni.ifaddresses('eth0')
     ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+    print(ip)
 
     if ip == broker:
         if platform == 'linux':
-#           os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
-            pass
+            try: 
+                client.connect(broker, broker_port)
+                print("Connected to broker.")
+                return 0
+            except:
+                os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
+                client.connect(broker, broker_port)
+                return 0
         else: 
-            pass
-
-#       while True:
-#           try:
-        client.connect(broker, broker_port)
-#               break
-#           except:
-#               print("Can't connect to the broker.")
+            return -1
 
     return 0
 
+
 def subscribe(client: mqtt_client, topic='+'):
     def on_message(client, userdata, msg):
+        print("In on_message")
         if msg.topic == "ID1pub":
-            FLC_command.on_message_to_pub(client=client, message=msg)
+            print("On message.")
+            result = FLC_command.on_message_to_pub(client=client, userdata=userdata, message=msg)
+            if not result == None:
+                print(result)
         elif msg.topic == "debug":
             try:
                 print(f'Debug message: {msg.payload.decode()}')
@@ -583,12 +593,19 @@ def scrollfunc(height, width):
 
 if __name__ == '__main__':
 
-    connect_to_broker(client)
+    
+    # client.on_connect = mqtt_connected
 
-    if client.is_connected():
+
+    if connect_to_broker(client) == PROCESS_PASSED:
+        print("Raspberry Pi is alive.")
         client.publish('test', "Raspberry Pi is alive.", qos=0)
+        subscribe(client)
         client.loop_start()
+    else:
+        print(client.is_connected())
 
+    print("Creating window")
     root = ctk.CTk()
     root.grid_rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)

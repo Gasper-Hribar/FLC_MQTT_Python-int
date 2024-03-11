@@ -6,6 +6,7 @@ from dataclasses import dataclass, field
 import time
 import pandas as pd
 import paho.mqtt.client as mqtt_client
+import threading
 
 
 #
@@ -21,6 +22,8 @@ topic = "+"
 client_id = "IDpython"
 transmit_ended_msg = "All sent."
 comms_end_flag = 0
+comms_end_event = threading.Event()
+err_message = ""
 recursion_depth = 0 
 
 read_values = {
@@ -40,20 +43,31 @@ read_values = {
 
 
 def on_message_to_pub(client, userdata, message):
+    print("On message.")
+    i = 0
     try:
-        if message.topic == "ID1pub":
-            global comms_end_flag
-            if message.payload.decode() == transmit_ended_msg:
-                comms_end_flag = 1
-                return (read_values, 0)
-            else:
-                comms_end_flag = 0
-                msg = message.payload.decode()
-                key = msg[0:5]
-                read_values[key] = msg[6:]
+        rec_message = message.payload
+        while True:
+            try:
+                if message.topic == "ID1pub":
+                    global comms_end_flag
+                    if rec_message.decode() == transmit_ended_msg:
+                        print(rec_message.decode())
+                        comms_end_flag = 1
+                        comms_end_event.set()
+                        return 
+                    else:
+                        comms_end_flag = 0
+                        msg = rec_message.decode()
+                        key = msg[0:5]
+                        read_values[key] = msg[6:]
+            except:
+                rec_message = rec_message[i*4:]
+                i += 1
     except:
         comms_end_flag = -1
-        return (f"Error: Message payload cannot be decoded. [ {message.payload} ]", -1)
+        err_message = f"Error: Message payload cannot be decoded. [ {message.payload} ]"
+        return err_message
 
 
 @dataclass
@@ -263,8 +277,6 @@ class FLC_interface:
 
     def initialize_ADDrange(self, excel_address):
         dac_range, adc_range = collect_range_data(excel_address)
-        # for key, value in dac_range.items():
-        #     print(value)
         dac_gain = {}
         adc_gain = {}
         for key, value in dac_range.items():
@@ -275,7 +287,6 @@ class FLC_interface:
             else:
                 print("ADD gain has to be 2.5 or 5.0!")
                 dac_gain[key] = 1
-        # print(dac_gain)
 
         for key, value in adc_range.items():
             if value == 5.0:
@@ -288,9 +299,6 @@ class FLC_interface:
                 print("ADD gain has to be 2.5 or 5.0!")
                 adc_gain[key] = 1
 
-        # print(adc_gain)
-        # print("dac_range", dac_range)
-        # print("adc_range", adc_range)
         for port_setting in self.settings:
             portN = port_setting.portN
 
@@ -319,8 +327,8 @@ class FLC_interface:
                 else:
                     write_values.append(init_value)
             else:
-                # print("NO UNIT", unit)
                 write_values.append(0)
+
         write_values2 = self.check_activeL(write_values, activeLow)
         return write_values2
         
@@ -336,6 +344,7 @@ class FLC_interface:
     def initialize_ports(self, excel_address):
         mcp, add1, add3, add4, adc, pwr = readExcel(excel_address)
         dac_range, adc_range = collect_range_data(excel_address)
+
         # initvalue, k, c, unit
         add1_complete = collect_chip_function(collect_chip_data(add1), 'convert_voltage', 'add')
         add3_complete = collect_chip_function(collect_chip_data(add3), 'convert_voltage', 'add')
@@ -405,10 +414,12 @@ class FLC_interface:
         #     if time.time() - stime > 1:
         #         return -1
         
-        if comms_end_flag == 1:
-            for key, val in read_values.items():
-                read_values[key] = [int(i) for i in val.split(',')]
-            return read_values
+        comms_end_event.wait(5)
+        comms_end_event.clear()
+
+        for key, val in read_values.items():
+            read_values[key] = [int(i) for i in val.split(',')]
+        return read_values, comms_end_flag 
         
         """ Arduino based code. """
         # data = arduino.readlines()
