@@ -8,6 +8,7 @@ and MQTT message transfering protocol.
 import yaml
 import time
 import os
+from os import dirname, abspath
 from sys import platform
 import numpy as np
 import tkinter as tk
@@ -24,6 +25,9 @@ import FLC_command
 #
 
 """ General constants """
+
+# get path to the directory
+file_directory = dirname(abspath(__file__))
 
 if os.environ.get('DISPLAY','') == '':
     os.environ.__setitem__('DISPLAY', ':0.0')  # sets display environment variable to 0.0
@@ -632,7 +636,7 @@ if __name__ == '__main__':
     serial_settings = FLC_command.serial_settings
     # arduino = FLC_command.arduino
     xstep = 0
-    with open("/home/raspberry/Documents/MQTT project/python_flc_interface/port_settings.yaml", "r") as file:
+    with open(f"{file_directory}/port_settings.yaml", "r") as file:
         ymldata = yaml.load(file, Loader=yaml.FullLoader)
     for key, value in ymldata.items():
         if key.startswith('port'):
