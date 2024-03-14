@@ -1,6 +1,7 @@
 #!/usr/local/lib/python3.11
 
 from sys import platform
+from os.path import dirname, abspath
 import yaml
 from dataclasses import dataclass, field
 import time
@@ -12,6 +13,8 @@ import threading
 #
 #  GLOBAL VARIABLES
 #
+
+file_directory = dirname(abspath(__file__))
 
 alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
 add_chipnames = {'ADD1': 2, 'ADD3': 4, 'ADD4': 5}
@@ -41,34 +44,39 @@ read_values = {
 # APPLICATION 
 #
 
-
 def on_message_to_pub(client, userdata, message):
     print("On message.")
     i = 0
+    rec_message = message.payload
     try:
-        rec_message = message.payload
-        while True:
-            try:
-                if message.topic == "ID1pub":
-                    global comms_end_flag
-                    if rec_message.decode() == transmit_ended_msg:
-                        print(rec_message.decode())
-                        comms_end_flag = 1
-                        comms_end_event.set()
-                        return 
-                    else:
-                        comms_end_flag = 0
-                        msg = rec_message.decode()
-                        key = msg[0:5]
-                        read_values[key] = msg[6:]
-            except:
-                rec_message = rec_message[i*4:]
-                i += 1
-    except:
-        comms_end_flag = -1
-        err_message = f"Error: Message payload cannot be decoded. [ {message.payload} ]"
-        return err_message
+        if message.topic == "ID1pub":
+            global comms_end_flag
+            
+            print(rec_message)
+            while ((rec_message[0] < 'A') or (rec_message[0] > 'Z')):
+                rec_message = rec_message[1:]
 
+            msg = rec_message.decode()    
+
+            if msg == transmit_ended_msg:
+                print("all sent")
+                print(rec_message.decode())
+                comms_end_flag = 1
+                comms_end_event.set()
+                return 
+            else:
+                comms_end_flag = 0
+                print(f"Received: {msg}")
+                key = msg[0:5]
+                read_values[key] = msg[6:]
+                return
+    except Exception:
+        print(Exception)
+        comms_end_flag = -1
+        err_message = f"Error: Message payload cannot be decoded. [ {message.payload[4:]} ]"
+        print(err_message)
+        return err_message
+   
 
 @dataclass
 class ChSetting:
@@ -461,19 +469,19 @@ class FLC_interface:
         result, flag = self.read()
         return (result, flag)
     
-if platform == 'linux':
-    serial_settings = SerialSettings(port='/dev/ttyACM0')
-elif platform == 'win32':
-    serial_settings = SerialSettings(port='COM15')
-else:
-    print('Unknown platform')
+# if platform == 'linux':
+#     serial_settings = SerialSettings(port='/dev/ttyACM0')
+# elif platform == 'win32':
+#     serial_settings = SerialSettings(port='COM15')
+# else:
+#     print('Unknown platform')
 
 # arduino = serial.Serial(port=serial_settings.port, baudrate=serial_settings.baud_rate, timeout=serial_settings.timeout)
 
 if __name__=="__main__":
     
     ports = {}
-    with open("/home/raspberry/Documents/python_flc_interface/port_settings.yaml", "r") as file:
+    with open(f"{file_directory}/port_settings.yaml", "r") as file:
         data = yaml.load(file, Loader=yaml.FullLoader)
     for key, value in data.items():
         if key.startswith('port'):

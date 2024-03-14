@@ -8,13 +8,12 @@ and MQTT message transfering protocol.
 import yaml
 import time
 import os
-from os import dirname, abspath
+from os.path import dirname, abspath
 from sys import platform
 import numpy as np
 import tkinter as tk
 import tkinter.messagebox as mbox
 import customtkinter as ctk
-from sys import platform
 import paho.mqtt.client as mqtt_client
 import netifaces as ni
 import FLC_command
@@ -29,8 +28,9 @@ import FLC_command
 # get path to the directory
 file_directory = dirname(abspath(__file__))
 
-if os.environ.get('DISPLAY','') == '':
-    os.environ.__setitem__('DISPLAY', ':0.0')  # sets display environment variable to 0.0
+if platform == 'linux':
+    if os.environ.get('DISPLAY','') == '':
+        os.environ.__setitem__('DISPLAY', ':0.0')  # sets display environment variable to 0.0
 
 PROCESS_PASSED = 0
 PROCESS_FAILED = -1
@@ -633,7 +633,7 @@ if __name__ == '__main__':
     root.title('ADD adapter test')
     
     ports={}
-    serial_settings = FLC_command.serial_settings
+    # serial_settings = FLC_command.serial_settings
     # arduino = FLC_command.arduino
     xstep = 0
     with open(f"{file_directory}/port_settings.yaml", "r") as file:
