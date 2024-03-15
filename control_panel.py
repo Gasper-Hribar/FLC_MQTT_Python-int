@@ -15,7 +15,7 @@ import tkinter as tk
 import tkinter.messagebox as mbox
 import customtkinter as ctk
 import paho.mqtt.client as mqtt_client
-import netifaces as ni
+# import netifaces as ni
 import FLC_command
 
 
@@ -27,6 +27,7 @@ import FLC_command
 
 # get path to the directory
 file_directory = dirname(abspath(__file__))
+os.chdir(file_directory)
 
 if platform == 'linux':
     if os.environ.get('DISPLAY','') == '':
@@ -43,13 +44,13 @@ chipnames = {'mcp': 0, 'ADD1': 2, 'ADD3': 4, 'ADD4': 5}
 ADDresolution = 4095
 ADCresolution = 65535
 
-read_values_keys = ['ADC0R', 'ADD1R', 'ADD3R', 'ADD4R', 'MCP0R', 'ADD1D', 'ADD3D', 'ADD4D']
+read_values_keys = ['ADC0R', 'ADD1R', 'ADD3R', 'ADD4R', 'MCP0S', 'ADD1D', 'ADD3D', 'ADD4D']
 
 zero_values = {'ADC0R':[0 ,0, 0, 0, 0, 0, 0, 0],
                 'ADD1R':[0 ,0, 0, 0, 0, 0, 0, 0],
                 'ADD3R':[0 ,0, 0, 0, 0, 0, 0, 0], 
                 'ADD4R':[0 ,0, 0, 0, 0, 0, 0, 0], 
-                'MCP0R':0, 
+                'MCP0S':0, 
                 'ADD1D':0, 
                 'ADD3D':0, 
                 'ADD4D':0}
@@ -61,43 +62,44 @@ broker_port = 1883
 topic = "+"
 client_id = "IDpython"
 
-client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
+if platform == "linux":
+    client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
+else:
+    client = mqtt_client.Client(client_id)
 
 #
 # APPLICATON 
 #
 
-
-def mqtt_connected():
-    print("connected")
-    return
-
 def connect_to_broker(client: mqtt_client):
-    ni.ifaddresses('eth0')
-    ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
-    print(ip)
+    client.connect(broker, broker_port)
+    return PROCESS_PASSED
+    # ni.ifaddresses('eth0')
+    # ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+    # print(ip)
 
-    if ip == broker:
-        if platform == 'linux':
-            try: 
-                client.connect(broker, broker_port)
-                print("Connected to broker.")
-                return 0
-            except:
-                os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
-                client.connect(broker, broker_port)
-                return 0
-        else: 
-            return -1
+    # # if ip == broker:
+    # if platform == 'linux':
+    #     try: 
+    #         client.connect(broker, broker_port)
+    #         print("Connected to broker.")
+    #         return 0
+    #     except:
+    #         os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
+    #         client.connect(broker, broker_port)
+    #         return 0
+    
+    # else: 
+    #     return -1
 
     return 0
 
 
 def subscribe(client: mqtt_client, topic='+'):
     def on_message(client, userdata, msg):
-        print("In on_message")
+        # print("In on_message")
         if msg.topic == "ID1pub":
-            print("On message.")
+            # print("On message.")
             result = FLC_command.on_message_to_pub(client=client, userdata=userdata, message=msg)
             if not result == None:
                 print(result)
@@ -161,36 +163,13 @@ def convert_read_val(readList):
 def read_fun(flc, adc_range, port_settings):
     gain = get_gain(adc_range['LTC'])
     readData, flag = flc.read_all(port_settings.portN, gain)
+    # print(f"read fun - read data: {readData}")
     if flag != PROCESS_FAILED:
         return readData
     else:
         print("Process FAILED: read_fun().")
-        print(readData, "\n")
+        # print(readData, "\n")
         return zero_values
-    
-    """ Arduino based functions. """
-    # sorted = sort_read_values(readData)
-    # ADC_read = []
-    # ADD1_read = []
-    # ADD3_read = []
-    # ADD4_read = []
-    # for el in range(0, 8):
-    #     ADC_read.append(sorted[el])
-    # for el in range(8, 16):
-    #     ADD1_read.append(sorted[el])
-    # for el in range(16, 24):
-    #     ADD3_read.append(sorted[el])
-    # for el in range(24, 32):
-    #     ADD4_read.append(sorted[el])
-    # MCPdig = sorted[32]
-    # ADD1dig = sorted[33]
-    # ADD3dig = sorted[34]
-    # ADD4dig = sorted[35]
-    # ADD1_read2 = convert_read_val(ADD1_read)
-    # ADD3_read2 = convert_read_val(ADD3_read)
-    # ADD4_read2 = convert_read_val(ADD4_read)
-    # return ADC_read, ADD1_read2, ADD3_read2, ADD4_read2, MCPdig, ADD1dig, ADD3dig, ADD4dig
-
 
 class ColorButton(ctk.CTkButton):
     def __init__(self, parent, flc, port_settings, channelN, chipname, init_value, activeLow, text, column=0, row=0, *args, **kwargs):
@@ -201,7 +180,7 @@ class ColorButton(ctk.CTkButton):
         self.activeLow = activeLow
         self.chipname = chipname
         self.channelN = channelN
-        self.cbutton = ctk.CTkButton(parent, text=text, text_color='black', bg_color=None, fg_color='white', hover_color=None, border_color='black', command=self.press)
+        self.cbutton = ctk.CTkButton(parent, text=text, text_color='black', bg_color='transparent', fg_color='white', hover_color=None, border_color='black', command=self.press)
         self.cbutton.grid(column=column, row=row, padx=5, pady=5)
         self.init_status()
         
@@ -306,7 +285,7 @@ class SwitchButton(ctk.CTkRadioButton):
 
 class LabelEntry:
     
-    def __init__(self, parent, flc, adc_range,read_func, port_settings, channelN, chipname, label, k, c, init_value, unit, column=0, row=0):
+    def __init__(self, parent, flc, adc_range, read_func, port_settings, channelN, chipname, label, k, c, init_value, unit, column=0, row=0):
         self.flc = flc
         self.adc_range = adc_range
         self.port_settings = port_settings
@@ -331,8 +310,9 @@ class LabelEntry:
     def read(self, *args):
         if args == ():
             readData = self.init_read
+            # print(f"read data: {readData}")
             if readData != PROCESS_FAILED:
-                ADC_read, ADD1_read2, ADD3_read2, ADD4_read2, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
+                ADC_read, ADD1_read, ADD3_read, ADD4_read, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
         else:
             ADC_read, ADD1_read, ADD3_read, ADD4_read = args
         if self.chipname == 'adc':
@@ -602,14 +582,14 @@ if __name__ == '__main__':
 
 
     if connect_to_broker(client) == PROCESS_PASSED:
-        print("Raspberry Pi is alive.")
+        # print("Raspberry Pi is alive.")
         client.publish('test', "Raspberry Pi is alive.", qos=0)
         subscribe(client)
         client.loop_start()
     else:
         print(client.is_connected())
 
-    print("Creating window")
+    # print("Creating window")
     root = ctk.CTk()
     root.grid_rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
@@ -633,10 +613,10 @@ if __name__ == '__main__':
     root.title('ADD adapter test')
     
     ports={}
-    # serial_settings = FLC_command.serial_settings
+    serial_settings = FLC_command.serial_settings
     # arduino = FLC_command.arduino
     xstep = 0
-    with open(f"{file_directory}/port_settings.yaml", "r") as file:
+    with open("port_settings.yaml", "r") as file:
         ymldata = yaml.load(file, Loader=yaml.FullLoader)
     for key, value in ymldata.items():
         if key.startswith('port'):
@@ -662,5 +642,5 @@ if __name__ == '__main__':
     widths = []
     for i in widget_frame.winfo_children():
         widths.append(i)
-    print("--- %s seconds ---" % (time.time() - start_time))
+    # print("--- %s seconds ---" % (time.time() - start_time))
     root.mainloop()

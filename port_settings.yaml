@@ -1,4 +1,4 @@
 ---
-port0: '/home/raspberry/Documents/MQTT\ project/FLC_MQTT_Python-int/ADD_adapter_test.xlsm'
+port0: 'ADD_adapter_test.xlsm'
 # port1: 'ADD_adapter_test1.xlsm'
 darkmode: False

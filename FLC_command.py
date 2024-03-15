@@ -1,6 +1,7 @@
 #!/usr/local/lib/python3.11
 
 from sys import platform
+import os
 from os.path import dirname, abspath
 import yaml
 from dataclasses import dataclass, field
@@ -15,6 +16,7 @@ import threading
 #
 
 file_directory = dirname(abspath(__file__))
+os.chdir(file_directory)
 
 alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
 add_chipnames = {'ADD1': 2, 'ADD3': 4, 'ADD4': 5}
@@ -34,10 +36,21 @@ read_values = {
     'ADD1R': "",
     'ADD3R': "",
     'ADD4R': "",
-    'MCP0R': "",
+    'MCP0S': "",
     'ADD1D': "",
     'ADD3D': "",
     'ADD4D': "",
+}
+
+read_data = {
+    'ADC0R': [],
+    'ADD1R': [],
+    'ADD3R': [],
+    'ADD4R': [],
+    'MCP0S': 0,
+    'ADD1D': 0,
+    'ADD3D': 0,
+    'ADD4D': 0,
 }
 
 #
@@ -45,35 +58,36 @@ read_values = {
 #
 
 def on_message_to_pub(client, userdata, message):
-    print("On message.")
+    # print("On message.")
     i = 0
     rec_message = message.payload
     try:
         if message.topic == "ID1pub":
             global comms_end_flag
             
-            print(rec_message)
-            while ((rec_message[0] < 'A') or (rec_message[0] > 'Z')):
+            # print(rec_message)
+            while rec_message and not (b'A' <= rec_message[0:1] <= b'Z'):
                 rec_message = rec_message[1:]
+                # print(rec_message)
 
-            msg = rec_message.decode()    
+            msg = rec_message.decode()
+            # print(msg)    
 
-            if msg == transmit_ended_msg:
-                print("all sent")
-                print(rec_message.decode())
+            if transmit_ended_msg in msg:
+                # print("all sent")
                 comms_end_flag = 1
                 comms_end_event.set()
                 return 
             else:
                 comms_end_flag = 0
-                print(f"Received: {msg}")
+                # print(f"Received: {msg}")
                 key = msg[0:5]
                 read_values[key] = msg[6:]
                 return
     except Exception:
         print(Exception)
         comms_end_flag = -1
-        err_message = f"Error: Message payload cannot be decoded. [ {message.payload[4:]} ]"
+        err_message = f"Error: Message payload cannot be decoded. [ {message.payload} ]"
         print(err_message)
         return err_message
    
@@ -151,8 +165,6 @@ def readExcel(file):
 
     return mcp_data2, add1_data2, add3_data2, add4_data2, adc_data2, pwr2
 
-# mcp, add1, add3, add4, adc, pwr = readExcel('ADD_adapter_test.xlsm')
-
 def collect_range_data(file):
     range_data = pd.read_excel(file, sheet_name='Sheet1', usecols='K:L')
     range_data.fillna(value=0)
@@ -162,10 +174,8 @@ def collect_range_data(file):
     adc_gains = [float(range_data.iloc[11,0]), float(range_data.iloc[11,1])]
     dac_dict = {'ADD1': add1_gains[0], 'ADD3': add3_gains[0], 'ADD4': add4_gains[0]}
     adc_dict = {'ADD1': add1_gains[1], 'ADD3': add3_gains[1], 'ADD4': add4_gains[1], 'LTC': adc_gains[1]}
-    # print(dac_dict, adc_dict)
+    
     return dac_dict, adc_dict
-
-# dac_range, adc_range = collect_range_data('ADD_adapter_test.xlsm')
 
 def collect_chip_data(chip):
     completeChip = []
@@ -240,7 +250,7 @@ def collect_chip_function(completeChip, command, name):
 
 @dataclass
 class SerialSettings:
-    port: str
+    port: str = ""
     baud_rate: int = 115200
     timeout: int = 0.1
 
@@ -313,7 +323,7 @@ class FLC_interface:
         for chipname, chipnum in add_chipnames.items():
             time.sleep(0.3)
             init_state = f'p{portN}c{chipnum}gA{adc_gain[chipname]}D{dac_gain[chipname]}'
-            print(init_state)
+            # print(init_state)
             self.write(init_state)
     
     def convert(self, list1):
@@ -323,7 +333,6 @@ class FLC_interface:
 
     def sort_writeADD_data(self, chip_data, setVals, activeLow, rangeV):
         ADDresolution = 4095
-        ADCresolution = 65535
         write_values = []
         for channel in range(len(chip_data)):
             init_value, k, c, unit = chip_data[channel]
@@ -367,9 +376,9 @@ class FLC_interface:
         for port_setting in self.settings:
             portN = port_setting.portN
             setMCP = self.convert(port_setting.mcp_reversed)
-            print("setMCP", setMCP)
+            # print("setMCP", setMCP)
             reversed_setMCP = self.convert(port_setting.mcp_settings)
-            print("reversedMCP", reversed_setMCP)
+            # print("reversedMCP", reversed_setMCP)
             setADD1 = self.convert(port_setting.add1_settings)
             setADD3 = self.convert(port_setting.add3_settings)
             setADD4 = self.convert(port_setting.add4_settings)
@@ -379,7 +388,7 @@ class FLC_interface:
 
         for initVal in self.initVals:
             writeMCP = self.check_activeL(initVal.mcp_init_values, mcp_aL)
-            print("writeMCP", writeMCP)
+            # print("writeMCP", writeMCP)
 
         self.set_operation(portN, 0, setMCP)
         self.set_operation(portN, 2, setADD1)
@@ -396,8 +405,6 @@ class FLC_interface:
         self.writeADD(portN, write_data3, setADD3, 4)
         self.writeADD(portN, write_data4, setADD4, 5)
 
-        # self.arduino.close()
-
     def writeADD(self, portN, addW, addS, chN):
         for a in range(len(addW)):
             if addS[a] == '4':
@@ -408,43 +415,56 @@ class FLC_interface:
                 pass
 
     def write(self, x):
-        # data_to_send = bytes(x+"\n", 'utf-8')
+        global read_data, read_values
+
+        read_values = {
+            'ADC0R': "",
+            'ADD1R': "",
+            'ADD3R': "",
+            'ADD4R': "",
+            'MCP0S': "",
+            'ADD1D': "",
+            'ADD3D': "",
+            'ADD4D': "",
+        }
+
+        read_data = {
+            'ADC0R': [],
+            'ADD1R': [],
+            'ADD3R': [],
+            'ADD4R': [],
+            'MCP0S': 0,
+            'ADD1D': 0,
+            'ADD3D': 0,
+            'ADD4D': 0,
+        }
+
         self.mqtt_client.publish('data', x, qos=0, retain=False)
-        print("Sent: ", x, "\n")
-        # time.sleep(0.02) # 0.18 minimum sleep
-        # arduino.write(data_to_send)
-        # print('Data was sent: %s' % data_to_send)
+        # print("Sent: ", x, "\n")
 
     def read(self):
-        stime = time.time()
-
-        # while comms_end_flag != 1: 
-        #     if time.time() - stime > 1:
-        #         return -1
-        
         comms_end_event.wait(5)
         comms_end_event.clear()
 
         for key, val in read_values.items():
-            read_values[key] = [int(i) for i in val.split(',')]
-        return read_values, comms_end_flag 
-        
-        """ Arduino based code. """
-        # data = arduino.readlines()
-        # print('Data was recieved: %s' % data)
-        # return data
+            for i in val.split(','):
+                if not i == '':
+                    if key[4] == 'R':
+                        # print(key)
+                        read_data[key].append(int(i))
+                    else:
+                        read_data[key] == int(i)
+        return read_data, comms_end_flag 
 
     def write_digital(self, portN:int, chip:int, chN:int, val:int):
         string_to_send = f'p{portN}c{chip}w1c{chN}v{val}'
         self.write(string_to_send)
         print(string_to_send)
-        #print("Successfully written.")
 
     def write_dac(self, portN:int, chip:int, chN:int, val:int):
         string_to_send = f'p{portN}c{chip}w0c{chN}v{val}'
         self.write(string_to_send)
         print(string_to_send)
-        #print("Successfully written.")
 
     def set_operation(self, portN:int, chip:int, setVal:int):
         string_to_send = f'p{portN}c{chip}s{setVal}'
@@ -469,19 +489,12 @@ class FLC_interface:
         result, flag = self.read()
         return (result, flag)
     
-# if platform == 'linux':
-#     serial_settings = SerialSettings(port='/dev/ttyACM0')
-# elif platform == 'win32':
-#     serial_settings = SerialSettings(port='COM15')
-# else:
-#     print('Unknown platform')
-
-# arduino = serial.Serial(port=serial_settings.port, baudrate=serial_settings.baud_rate, timeout=serial_settings.timeout)
+serial_settings = SerialSettings()
 
 if __name__=="__main__":
     
     ports = {}
-    with open(f"{file_directory}/port_settings.yaml", "r") as file:
+    with open("port_settings.yaml", "r") as file:
         data = yaml.load(file, Loader=yaml.FullLoader)
     for key, value in data.items():
         if key.startswith('port'):
