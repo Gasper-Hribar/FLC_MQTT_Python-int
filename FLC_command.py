@@ -83,6 +83,8 @@ def on_message_to_pub(client, userdata, message):
                 # print(f"Received: {msg}")
                 key = msg[0:5]
                 read_values[key] = msg[6:]
+                # if key == 'MCP0S':
+                #     print(f'{key} = {msg[6:]}')
                 return
     except Exception:
         print(Exception)
@@ -414,7 +416,7 @@ class FLC_interface:
             else:
                 pass
 
-    def write(self, x):
+    def write(self, message):
         global read_data, read_values
 
         read_values = {
@@ -439,7 +441,7 @@ class FLC_interface:
             'ADD4D': 0,
         }
 
-        self.mqtt_client.publish('data', x, qos=0, retain=False)
+        self.mqtt_client.publish('data', message, qos=0, retain=False)
         # print("Sent: ", x, "\n")
 
     def read(self):
@@ -453,7 +455,9 @@ class FLC_interface:
                         # print(key)
                         read_data[key].append(int(i))
                     else:
-                        read_data[key] == int(i)
+                        read_data[key] = int(i)
+                        print(f'{key} = {int(i)}')
+        print(read_data)
         return read_data, comms_end_flag 
 
     def write_digital(self, portN:int, chip:int, chN:int, val:int):

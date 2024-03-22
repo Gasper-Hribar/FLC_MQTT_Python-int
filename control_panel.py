@@ -258,6 +258,7 @@ class SwitchButton(ctk.CTkRadioButton):
             readData = self.init_read
             if readData != PROCESS_FAILED:
                 ADC_read, ADD1_read2, ADD3_read2, ADD4_read2, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
+                # print(readData)
         else:
             MCPdig, ADD1dig, ADD3dig, ADD4dig = args
         if self.chipname == 'mcp':
@@ -274,6 +275,7 @@ class SwitchButton(ctk.CTkRadioButton):
 
     def update_status(self, *args):
         digVals = self.digRead(*args)
+        # print(digVals)
         if digVals[self.channelN] == 1:
             self.button.configure(border_color='red')
             self.onOff.set(value=True)
@@ -281,6 +283,9 @@ class SwitchButton(ctk.CTkRadioButton):
             self.onOff.set(value=False)
             self.button.configure(fg_color='white')
             self.button.configure(hover_color='black')
+        if self.channelN == 4 or self.channelN == 5:
+            # print(digVals[self.channelN])
+            pass
 
 
 class LabelEntry:
@@ -469,15 +474,17 @@ class Widget1:
     def write_value(self, getVal):
         writeVal = self.convert_voltage(getVal)
         self.flc.write_dac(self.port_settings.portN, chipnames[self.chipname], alphabet[self.channelN], writeVal)
-
+ 
 
 def sortDIGvals(val, chiptype):
     listDIG = []
     bin0 = bin(val)
     bin1 = bin0[2:]
+    # print(f'bin1: {bin1}')
     for val in bin1[::-1]:
         listDIG.append(int(val))
     if chiptype == 'mcp':
+        # print(bin0)
         while len(listDIG) < 16:
             listDIG.append(0)
     elif chiptype == 'add':
@@ -485,6 +492,7 @@ def sortDIGvals(val, chiptype):
             listDIG.append(0)
     else:
         print('Wrong chiptype')
+    # print(listDIG)
     return listDIG
 
 
@@ -559,12 +567,14 @@ class port():
         readData = read_fun(self.flc, self.adc_range, self.port_settings)
         if readData != PROCESS_FAILED:
             ADC_read, ADD1_read, ADD3_read, ADD4_read, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
+            print(MCPdig, ADD1dig, ADD3dig, ADD4dig)
         for box in self.readingBoxes:
             box.update(ADC_read, ADD1_read, ADD3_read, ADD4_read)
         for digitalButton in self.digitalButtons:
             digitalButton.update_status(MCPdig, ADD1dig, ADD3dig, ADD4dig)
         if True:
-            self.parent.after(500, self.update_fun)
+            # print(MCPdig, ADD1dig, ADD3dig, ADD4dig)
+            self.parent.after(300, self.update_fun)
             
     def getXplus(self):
         return max(self.xpluslist)
@@ -584,6 +594,7 @@ if __name__ == '__main__':
     if connect_to_broker(client) == PROCESS_PASSED:
         # print("Raspberry Pi is alive.")
         client.publish('test', "Raspberry Pi is alive.", qos=0)
+        client.publish('data', 'INIT', qos=0)
         subscribe(client)
         client.loop_start()
     else:
