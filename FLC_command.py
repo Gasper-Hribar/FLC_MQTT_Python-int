@@ -456,23 +456,23 @@ class FLC_interface:
                         read_data[key].append(int(i))
                     else:
                         read_data[key] = int(i)
-                        print(f'{key} = {int(i)}')
-        print(read_data)
+                        # print(f'{key} = {int(i)}')
+        # print(read_data)
         return read_data, comms_end_flag 
 
     def write_digital(self, portN:int, chip:int, chN:int, val:int):
         string_to_send = f'p{portN}c{chip}w1c{chN}v{val}'
         self.write(string_to_send)
-        print(string_to_send)
+        # print(string_to_send)
 
     def write_dac(self, portN:int, chip:int, chN:int, val:int):
         string_to_send = f'p{portN}c{chip}w0c{chN}v{val}'
         self.write(string_to_send)
-        print(string_to_send)
+        # print(string_to_send)
 
     def set_operation(self, portN:int, chip:int, setVal:int):
         string_to_send = f'p{portN}c{chip}s{setVal}'
-        print(string_to_send)
+        # print(string_to_send)
         self.write(string_to_send)
 
     def read_all(self, portN:int, gain:int):
@@ -505,7 +505,7 @@ if __name__=="__main__":
             ports[int(key[4])] = value
         else:
             pass
-    print(ports)
+    # print(ports)
     for portnum, excel_address in ports.items():
         mcp, add1, add3, add4, adc, pwr = readExcel(excel_address)
         dac_range, adc_range = collect_range_data(excel_address)

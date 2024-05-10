@@ -12,10 +12,11 @@ from os.path import dirname, abspath
 from sys import platform
 import numpy as np
 import tkinter as tk
+from tkinter import ttk
 import tkinter.messagebox as mbox
 import customtkinter as ctk
 import paho.mqtt.client as mqtt_client
-# import netifaces as ni
+import netifaces as ni
 import FLC_command
 
 
@@ -72,25 +73,26 @@ else:
 #
 
 def connect_to_broker(client: mqtt_client):
-    client.connect(broker, broker_port)
-    return PROCESS_PASSED
-    # ni.ifaddresses('eth0')
-    # ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
-    # print(ip)
+    # client.connect(broker, broker_port)
+    # return PROCESS_PASSED
+    ni.ifaddresses('eth0')
+    ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+    print(ip)
 
-    # # if ip == broker:
-    # if platform == 'linux':
-    #     try: 
-    #         client.connect(broker, broker_port)
-    #         print("Connected to broker.")
-    #         return 0
-    #     except:
-    #         os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
-    #         client.connect(broker, broker_port)
-    #         return 0
     
-    # else: 
-    #     return -1
+    if platform == 'linux':
+        if ip == broker:
+            try: 
+                client.connect(broker, broker_port)
+                print("Connected to broker.")
+                return 0
+            except:
+                os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
+                client.connect(broker, broker_port)
+                return 0
+    
+    else: 
+        return -1
 
     return 0
 
@@ -371,15 +373,16 @@ class Widget1:
         self.c = c
         self.init_value = init_value
         row1 = row + 1
-        self.var1 = 0
-        self.writeVal = ctk.StringVar(self.frame, value=f'0.00 {self.unit}')
+        self.var1 = 0.
+        self.writeVal = ctk.StringVar(self.frame, value=f'0.000 {self.unit}')
         self.values = [str(a) for a in values]
         self.noStepSelected = True
         self.checkboxVal = ctk.BooleanVar(self.frame, value=True)
-        self.increment = ctk.IntVar(self.frame, value=1)
-        # self.textvar = ctk.IntVar(parent, value=100)
+        self.increment = ctk.DoubleVar(self.frame, value=1)
+        self.increment.set(1.0)
+        # self.optionmenu_var = ctk.StringVar(value=f"{self.increment.get()}")
 
-        self.label1 = ctk.CTkLabel(self.frame, text=label).grid(column=0, row=0, padx=(0,110)) # padx=(0,170) for full text display
+        self.label1 = ctk.CTkLabel(self.frame, text=label).grid(column=0, row=0, padx=(0,170)) # padx=(0,170) for full text display
 
         self.button1 = ctk.CTkButton(self.frame, width=40, border_width=2, fg_color=None, command=self.increase, text='>')
         self.button1.grid(column=0, row=0, padx=(200,0))
@@ -395,10 +398,37 @@ class Widget1:
         
         self.label2 = ctk.CTkLabel(self.frame, width=30, text='Step')
         self.label2.grid(column=0, row=1, padx=(60,0))
-        self.combobox = ctk.CTkComboBox(self.frame, width=70, variable = self.increment, command=self.config_increment, values=self.values)
-        self.combobox['width'] = 6
-        self.combobox.grid(column=0, row=1, padx=(170,0))
+
+        self.button_step = ctk.CTkButton(self.frame, width=10, border_width=2, fg_color=None, command=self.open_selection_window, text=f"{self.increment.get():.3f}")
+        self.button_step.grid(column=0, row=1, padx=(200,0))
+
+        # self.combobox = ctk.CTkComboBox(self.frame, width=70, variable = self.increment, command=self.config_increment, values=self.values)
+        # self.combobox['width'] = 6
+        # self.combobox.grid(column=0, row=1, padx=(170,0))
+
+
         self.initialize()
+
+    def open_selection_window(self):
+    # Create a top-level window
+        top = tk.Toplevel(self.frame)
+        top.title("Select a Value")
+
+        # Function to update increment and close the window
+        def set_increment(value):
+            self.increment.set(value)
+            self.button_step.configure(text=f"{self.increment.get():.3f}")
+            top.destroy()
+
+        # Define buttons and their positions
+        values = [(10, 0, 0), (1, 0, 1), (0.1, 0, 2), 
+              (0.01, 1, 0), (0.001, 1, 1)]
+        for value, row, col in values:
+            ctk.CTkButton(top, text=str(value), command=lambda v=value: set_increment(v)).grid(row=row, column=col, padx=5, pady=5)
+
+        # Empty space in the grid to balance the layout
+        tk.Label(top, text="").grid(row=1, column=2)  # Empty label to fill the grid for symmetry
+
 
     def initialize(self):
         data_to_display = 0
@@ -410,7 +440,7 @@ class Widget1:
             data_to_display = self.initVals.add4_init_values[self.channelN]
         else:
             print('WrongChipError')
-        initwrite = '{:.2f}'.format(data_to_display)
+        initwrite = '{:.3f}'.format(data_to_display)
         self.var1 = data_to_display
         data_to_display = f'{initwrite} {self.unit}'
         self.writeVal.set(data_to_display)
@@ -427,48 +457,50 @@ class Widget1:
             self.entry.configure(state=tk.DISABLED, fg_color='grey')
             self.button1.configure(state=tk.DISABLED)
             self.button2.configure(state=tk.DISABLED)
-            self.writeVal.set(f'0.00 {self.unit}')
+            self.writeVal.set(f'0.000 {self.unit}')
             self.flc.write_dac(0, chipnames[self.chipname], self.channelN, 0)
 
     def increase(self):
         if self.noStepSelected:
             self.var1 += self.increment.get()
-            to_display = '{:.2f}'.format(self.var1)
-            self.write_value(float(to_display))
-            self.writeVal.set(f'{to_display} {self.unit}')
-            # print(self.var1)
         else:
-            self.var1 += self.increment
-            to_display = '{:.2f}'.format(self.var1)
-            self.write_value(float(to_display))
-            self.writeVal.set(f'{to_display} {self.unit}')
+            self.var1 += self.increment.get()
+
+
+        if self.var1 > self.dac_range[self.chipname]:
+            self.var1 = 5.000
+        to_display = '{:.3f}'.format(self.var1)
+        self.write_value(float(to_display))
+        self.writeVal.set(f'{to_display} {self.unit}')
             # print(self.var1)
 
     def decrease(self):
         if self.noStepSelected:
             self.var1 -= self.increment.get()
-            if self.var1 < 0:
-                self.var1 = 0
-            to_display = '{:.2f}'.format(self.var1)
-            self.write_value(float(to_display))
-            self.writeVal.set(f'{to_display} {self.unit}')
+            
             # print(self.var1)
         else:
-            self.var1 -= self.increment
-            if self.var1 < 0:
-                self.var1 = 0
-            to_display = '{:.2f}'.format(self.var1)
-            self.write_value(float(to_display))
-            self.writeVal.set(f'{to_display} {self.unit}')
+            self.var1 -= self.increment.get()
+
+        if self.var1 < 0:
+            self.var1 = 0
+        to_display = '{:.3f}'.format(self.var1)
+        self.write_value(float(to_display))
+        self.writeVal.set(f'{to_display} {self.unit}')
             # print(self.var1)
 
-    def config_increment(self, event):
+    def select_increment_callback(self, event):
         self.noStepSelected = False
-        self.increment = float(self.combobox.get())
+        self.increment.set(float(self.combobox.get()))
+        # self.combobox.set(f"{self.increment.get()}")
+        print("Increment:", self.increment.get())
+
 
     def convert_voltage(self, voltage):
         self.init_value = self.k * voltage + self.c
         convertedVal = round((self.init_value/self.dac_range[self.chipname])*ADDresolution)
+        if convertedVal > ADDresolution:
+            convertedVal = ADDresolution
         return convertedVal
 
     def write_value(self, getVal):
@@ -567,7 +599,7 @@ class port():
         readData = read_fun(self.flc, self.adc_range, self.port_settings)
         if readData != PROCESS_FAILED:
             ADC_read, ADD1_read, ADD3_read, ADD4_read, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
-            print(MCPdig, ADD1dig, ADD3dig, ADD4dig)
+            # print(MCPdig, ADD1dig, ADD3dig, ADD4dig)
         for box in self.readingBoxes:
             box.update(ADC_read, ADD1_read, ADD3_read, ADD4_read)
         for digitalButton in self.digitalButtons:
@@ -648,7 +680,7 @@ if __name__ == '__main__':
     if platform == 'win32':
         root.geometry(f'{width+scrollbar.winfo_width()}x{height}')
     elif platform == 'linux':
-        root.geometry(f'750x450') # for 7" raspberry touchscreen
+        root.geometry(f'800x450') # for 7" raspberry touchscreen
     topFrame.bind("<Configure>", scrollfunc(height, width))
     widths = []
     for i in widget_frame.winfo_children():
