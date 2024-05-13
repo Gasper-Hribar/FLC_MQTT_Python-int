@@ -599,8 +599,8 @@ class port():
         readData = read_fun(self.flc, self.adc_range, self.port_settings)
         if readData != PROCESS_FAILED:
             ADC_read, ADD1_read, ADD3_read, ADD4_read, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
-            print('digs:', MCPdig, ADD1dig, ADD3dig, ADD4dig)
-            print('reading boxes:', ADC_read, ADD1_read, ADD3_read, ADD4_read)
+            # print('digs:', MCPdig, ADD1dig, ADD3dig, ADD4dig)
+            print('ADD4read:', ADD4_read)
         for box in self.readingBoxes:
             box.update(ADC_read, ADD1_read, ADD3_read, ADD4_read)
             
