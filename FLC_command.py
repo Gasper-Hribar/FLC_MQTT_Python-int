@@ -86,6 +86,7 @@ def on_message_to_pub(client, userdata, message):
                 # if key == 'MCP0S':
                 #     print(f'{key} = {msg[6:]}')
                 return
+            
     except Exception:
         print(Exception)
         comms_end_flag = -1

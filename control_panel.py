@@ -39,6 +39,7 @@ PROCESS_FAILED = -1
     
 """ FLC interface related constants """
 
+ports={}
 start_time = time.time()
 alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P']
 chipnames = {'mcp': 0, 'ADD1': 2, 'ADD3': 4, 'ADD4': 5}
@@ -292,7 +293,7 @@ class SwitchButton(ctk.CTkRadioButton):
 
 class LabelEntry:
     
-    def __init__(self, parent, flc, adc_range, read_func, port_settings, channelN, chipname, label, k, c, init_value, unit, column=0, row=0):
+    def __init__(self, parent, flc, adc_range, read_func, port_settings, channelN, chipname, label, k, c, isExp, t0, b, init_value, unit, column=0, row=0):
         self.flc = flc
         self.adc_range = adc_range
         self.port_settings = port_settings
@@ -301,6 +302,9 @@ class LabelEntry:
         self.unit = unit
         self.k = k
         self.c = c
+        self.isExp = isExp
+        self.t0 = t0
+        self.b = b
         self.init_read=read_func
         self.init_value = init_value
         self.frame = ctk.CTkFrame(parent)
@@ -353,7 +357,13 @@ class LabelEntry:
                 voltage = (to_convert-ADDresolution)/ADDresolution*abs(self.adc_range[self.chipname])*2
             else:
                 voltage = to_convert/ADDresolution*abs(self.adc_range[self.chipname])*2
-        readValue = voltage*self.k + self.c
+
+        if not self.isExp:
+            readValue = voltage*self.k + self.c
+        else:
+            if voltage < 0.05: voltage = 0.05
+            readValue = (1/self.t0 + 1/self.b * np.log(voltage/(5-voltage)))**(-1) - 273.15
+
         var = '{:.3f}'.format(readValue)
         return var
 
@@ -559,7 +569,7 @@ class port():
         add4_settings = FLC_command.collect_chip_data(add4)
         mcp_settings = FLC_command.collect_chip_data(mcp)
         adc_settings = FLC_command.collect_chip_data(adc)
-        label = ctk.CTkLabel(self.parent, text=f'ADD_adapter_test-port{self.portnum}')
+        label = ctk.CTkLabel(self.parent, text=f'{ports[self.portnum]}')
         label.grid(column=1+self.xplus, row=0)
         self.control_panel(self.parent, add1_settings, 'ADD1', self.xplus)
         self.control_panel(self.parent, add3_settings, 'ADD3', self.xplus)
@@ -580,7 +590,7 @@ class port():
                     Widget1(frame, self.flc, self.initVals, self.dac_range, self.port_settings, channelN=index, chipname=chipname, label=channel.name, k=channel.k, c=channel.constant, init_value=channel.initValues, unit=channel.unit, column=channel.coordX+xplus, row=channel.coordY)
                    
                 elif channel.function == 'ADC':
-                    readingBox = LabelEntry(frame, self.flc, self.adc_range, self.read_func, self.port_settings, channelN = index, chipname=chipname, label=channel.name, k=channel.k, c=channel.constant, init_value=channel.initValues, unit=channel.unit, column=channel.coordX+xplus, row=channel.coordY)
+                    readingBox = LabelEntry(frame, self.flc, self.adc_range, self.read_func, self.port_settings, channelN = index, chipname=chipname, label=channel.name, k=channel.k, c=channel.constant, isExp=channel.isExp, t0=channel.t0, b=channel.B, init_value=channel.initValues, unit=channel.unit, column=channel.coordX+xplus, row=channel.coordY)
                     
                     self.readingBoxes.append(readingBox)
                 elif channel.function == 'DIG_IN':
@@ -657,9 +667,7 @@ if __name__ == '__main__':
     widget_frame = ctk.CTkFrame(canvas)
     canvas.create_window((0,0), window=widget_frame, anchor='nw')
         
-    root.title('ADD adapter test')
-    
-    ports={}
+    root.title('FLC controller')
     serial_settings = FLC_command.serial_settings
     # arduino = FLC_command.arduino
     xstep = 0
