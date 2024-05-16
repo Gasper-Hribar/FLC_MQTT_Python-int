@@ -447,15 +447,15 @@ class Widget1:
         # print("Increment:", self.increment.get())
 
 
-    def convert_voltage(self, voltage):
-        self.init_value = self.k * voltage + self.c
+    def convert_value(self, value):
+        self.init_value = (value - self.c) / self.k
         convertedVal = round((self.init_value/self.dac_range[self.chipname])*ADDresolution)
         if convertedVal > ADDresolution:
             convertedVal = ADDresolution
         return convertedVal
 
     def write_value(self, getVal):
-        writeVal = self.convert_voltage(getVal)
+        writeVal = self.convert_value(getVal)
         self.flc.write_dac(self.port_settings.portN, chipnames[self.chipname], alphabet[self.channelN], writeVal)
  
 
