@@ -30,7 +30,6 @@ file_directory = dirname(abspath(__file__))
 os.chdir(file_directory)
 
 if platform == 'linux':    
-    # import netifaces as ni
     if os.environ.get('DISPLAY','') == '':
         os.environ.__setitem__('DISPLAY', ':0.0')  # sets display environment variable to 0.0
 
@@ -56,67 +55,6 @@ zero_values = {'ADC0R':[0 ,0, 0, 0, 0, 0, 0, 0],
                 'ADD1D':0, 
                 'ADD3D':0, 
                 'ADD4D':0}
-
-""" MQTT related constants"""
-
-# broker = '192.168.1.1'
-# broker_port = 1883
-# topic = "+"
-# client_id = "IDpython"
-
-# if platform == "linux":
-#     client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
-# else:
-#     client = mqtt_client.Client(client_id)
-
-#
-# APPLICATON 
-#
-
-# def connect_to_broker(client: mqtt_client):
-   
-#     if platform == 'linux':
-#         ni.ifaddresses('eth0')
-#         ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
-#         print(ip)
-#         if ip == broker:
-#             try: 
-#                 client.connect(broker, broker_port)
-#                 print("Connected to broker.")
-#                 return 0
-#             except:
-#                 os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
-#                 client.connect(broker, broker_port)
-#                 return 0
-    
-#     else: 
-#         try:
-#             client.connect(broker, broker_port)
-#             return PROCESS_PASSED
-#         except:
-#             return PROCESS_FAILED
-
-#     return 0
-
-
-# def subscribe(client: mqtt_client, topic='+'):
-#     def on_message(client, userdata, msg):
-#         # print("In on_message")
-#         if msg.topic == "ID1pub":
-#             # print("On message.")
-#             result = FLC_command.on_message_to_pub(client=client, userdata=userdata, message=msg)
-#             if not result == None:
-#                 print(result)
-#         elif msg.topic == "debug":
-#             try:
-#                 print(f'Debug message: {msg.payload.decode()}')
-#             except:
-#                 print(f"Error: Message payload cannot be decoded. [ {msg.payload} ]")
-               
-
-#     client.subscribe(topic)
-#     client.on_message = on_message
-#     return
 
 
 def get_gain(ltc_range):
@@ -480,8 +418,8 @@ class Widget1:
             self.var1 += self.increment.get()
 
 
-        if self.var1 > self.dac_range[self.chipname]:
-            self.var1 = 5.000
+        if self.var1 > self.maxValue:
+            self.var1 = self.maxValue
         to_display = '{:.3f}'.format(self.var1)
         self.write_value(float(to_display))
         self.writeVal.set(f'{to_display} {self.unit}')
@@ -495,8 +433,8 @@ class Widget1:
         else:
             self.var1 -= self.increment.get()
 
-        if self.var1 < 0:
-            self.var1 = 0
+        if self.var1 < self.minValue:
+            self.var1 = self.minValue
         to_display = '{:.3f}'.format(self.var1)
         self.write_value(float(to_display))
         self.writeVal.set(f'{to_display} {self.unit}')
