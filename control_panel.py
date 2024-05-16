@@ -122,7 +122,7 @@ class ColorButton(ctk.CTkButton):
         self.activeLow = activeLow
         self.chipname = chipname
         self.channelN = channelN
-        self.cbutton = ctk.CTkButton(parent, text=text, text_color='black', bg_color='transparent', fg_color='white', hover_color=None, border_color='black', command=self.press)
+        self.cbutton = ctk.CTkButton(parent, text=text, text_color='black', bg_color='transparent', fg_color='white', hover_color=None, hover=False, border_color='black', command=self.press)
         self.cbutton.grid(column=column, row=row, padx=5, pady=5)
         self.init_status()
         
@@ -541,7 +541,7 @@ class port():
                     
                     self.digitalButtons.append(digitalButton)
                 elif channel.function == 'DIG_OUT':
-                    ColorButton(frame, self.flc, self.port_settings, channelN=index, chipname=chipname, init_value=channel.initValues, activeLow=channel.activeLow, text=channel.name, column=channel.coordX+xplus, row=channel.coordY)
+                    ColorButton(frame, self.flc, self.port_settings, channelN=index, chipname=chipname, init_value=channel.initValues, activeLow=channel.activeLow, text=channel.name, column=channel.coordX+xplus, row=channel.coordY, hover=False)
                    
                 elif channel.function == 'PWR':
                     pass

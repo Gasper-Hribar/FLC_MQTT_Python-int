@@ -15,7 +15,6 @@ import threading
 #  GLOBAL VARIABLES
 #
 
-
 PROCESS_PASSED = 0
 PROCESS_FAILED = -1
 
