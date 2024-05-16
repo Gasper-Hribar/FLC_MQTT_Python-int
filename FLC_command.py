@@ -225,6 +225,7 @@ def sortData(data):
     chSetting = ChSetting(function=data.iloc[2], name=data.iloc[3], unit=data.iloc[4], k=float(data.iloc[5]), constant=float(data.iloc[6]), hidden=bool(data.iloc[7]), coordX=int(data.iloc[8]), coordY=int(data.iloc[9]), dacRange=int(data.iloc[10]), adcRange=int(data.iloc[11]), minValues=float(data.iloc[12]), maxValues=float(data.iloc[13]), initValues=int(data.iloc[14]), isImportant=bool(data.iloc[15]), Ximportant=int(data.iloc[16]), Yimportant=int(data.iloc[17]), activeLow=bool(data.iloc[18]), isExp=bool(data.iloc[19]), B=float(data.iloc[20]), r0=float(data.iloc[21]), t0=float(data.iloc[22]), enableInitVal=bool(data.iloc[23]), disablePowerDrop=bool(data.iloc[40]))
     alarms = Alarms(enableAlarm=bool(data.iloc[24]), aboveBelow=bool(data.iloc[25]), warningVal=float(data.iloc[26]), interlockVal=float(data.iloc[27]))
     mplxChns = MultiplexedChannels(multiplexSelectorAddress=int(data.iloc[28]), isMultiplexed=bool(data.iloc[29]), multiplexedFunc=str(data.iloc[30]), hidden=bool(data.iloc[31]), x=int(data.iloc[32]), y=int(data.iloc[33]), multiplexedName=data.iloc[34], isMuxImportant=bool(data.iloc[35]), ximportant=int(data.iloc[36]), yimportant=int(data.iloc[37]), initValMux=float(data.iloc[38]), muxActiveLow=bool(data.iloc[39]))
+    print(f"Min value: {chSetting.minValues} to max value: {chSetting.maxValues}.\n")
     return chSetting, alarms, mplxChns
 
 def readExcel(file):
@@ -352,7 +353,7 @@ class PortSetting:
         self.mcp_reversed = self.mcp_settings.copy()
         self.mcp_reversed.reverse()
 
-        print("ADD4 settings: ", self.add4_settings)
+        # print("ADD4 settings: ", self.add4_settings)
         
 
 @dataclass
