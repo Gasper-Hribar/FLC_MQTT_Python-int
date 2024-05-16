@@ -16,7 +16,6 @@ from tkinter import ttk
 import tkinter.messagebox as mbox
 import customtkinter as ctk
 import paho.mqtt.client as mqtt_client
-import netifaces as ni
 import FLC_command
 
 
@@ -30,7 +29,8 @@ import FLC_command
 file_directory = dirname(abspath(__file__))
 os.chdir(file_directory)
 
-if platform == 'linux':
+if platform == 'linux':    
+    # import netifaces as ni
     if os.environ.get('DISPLAY','') == '':
         os.environ.__setitem__('DISPLAY', ':0.0')  # sets display environment variable to 0.0
 
@@ -59,63 +59,64 @@ zero_values = {'ADC0R':[0 ,0, 0, 0, 0, 0, 0, 0],
 
 """ MQTT related constants"""
 
-broker = '192.168.1.1'
-broker_port = 1883
-topic = "+"
-client_id = "IDpython"
+# broker = '192.168.1.1'
+# broker_port = 1883
+# topic = "+"
+# client_id = "IDpython"
 
-if platform == "linux":
-    client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
-else:
-    client = mqtt_client.Client(client_id)
+# if platform == "linux":
+#     client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
+# else:
+#     client = mqtt_client.Client(client_id)
 
 #
 # APPLICATON 
 #
 
-def connect_to_broker(client: mqtt_client):
-    # client.connect(broker, broker_port)
-    # return PROCESS_PASSED
-    ni.ifaddresses('eth0')
-    ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
-    print(ip)
-
+# def connect_to_broker(client: mqtt_client):
+   
+#     if platform == 'linux':
+#         ni.ifaddresses('eth0')
+#         ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+#         print(ip)
+#         if ip == broker:
+#             try: 
+#                 client.connect(broker, broker_port)
+#                 print("Connected to broker.")
+#                 return 0
+#             except:
+#                 os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
+#                 client.connect(broker, broker_port)
+#                 return 0
     
-    if platform == 'linux':
-        if ip == broker:
-            try: 
-                client.connect(broker, broker_port)
-                print("Connected to broker.")
-                return 0
-            except:
-                os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
-                client.connect(broker, broker_port)
-                return 0
-    
-    else: 
-        return -1
+#     else: 
+#         try:
+#             client.connect(broker, broker_port)
+#             return PROCESS_PASSED
+#         except:
+#             return PROCESS_FAILED
 
-    return 0
+#     return 0
 
 
-def subscribe(client: mqtt_client, topic='+'):
-    def on_message(client, userdata, msg):
-        # print("In on_message")
-        if msg.topic == "ID1pub":
-            # print("On message.")
-            result = FLC_command.on_message_to_pub(client=client, userdata=userdata, message=msg)
-            if not result == None:
-                print(result)
-        elif msg.topic == "debug":
-            try:
-                print(f'Debug message: {msg.payload.decode()}')
-            except:
-                print(f"Error: Message payload cannot be decoded. [ {msg.payload} ]")
+# def subscribe(client: mqtt_client, topic='+'):
+#     def on_message(client, userdata, msg):
+#         # print("In on_message")
+#         if msg.topic == "ID1pub":
+#             # print("On message.")
+#             result = FLC_command.on_message_to_pub(client=client, userdata=userdata, message=msg)
+#             if not result == None:
+#                 print(result)
+#         elif msg.topic == "debug":
+#             try:
+#                 print(f'Debug message: {msg.payload.decode()}')
+#             except:
+#                 print(f"Error: Message payload cannot be decoded. [ {msg.payload} ]")
                
 
-    client.subscribe(topic)
-    client.on_message = on_message
-    return
+#     client.subscribe(topic)
+#     client.on_message = on_message
+#     return
 
 
 def get_gain(ltc_range):
@@ -369,10 +370,12 @@ class LabelEntry:
 
 class Widget1:
 
-    def __init__(self, parent, flc, initVals, dac_range, port_settings, channelN, chipname, label, k, c, init_value, unit, column=0, row=0, values=[0.01, 0.1, 1]):
+    def __init__(self, parent, flc, initVals, dac_range, minValue, maxValue, port_settings, channelN, chipname, label, k, c, init_value, unit, column=0, row=0, values=[0.01, 0.1, 1]):
         self.flc = flc
         self.initVals = initVals
         self.dac_range = dac_range
+        self.minValue = minValue
+        self.maxValue = maxValue
         self.port_settings = port_settings
         self.frame = ctk.CTkFrame(parent)
         self.frame.grid(column=column, row=row, rowspan=2, padx=5, pady=5)
@@ -541,6 +544,8 @@ def sortDIGvals(val, chiptype):
 class port():
 
     def __init__(self, parent, portnum, excel_address, xplus, *args, **kwargs):
+
+        self.serial_settings = FLC_command.SerialSettings()
         
         self.portnum = portnum
         self.excel_address = excel_address
@@ -555,7 +560,7 @@ class port():
         self.port_settings.updateChipSettings(excel_address)
         self.initVals = FLC_command.PortInit()
         self.initVals.updateChipInitial(excel_address)
-        self.flc = FLC_command.FLC_interface(serial_settings=serial_settings, settings=[self.port_settings], initVals=[self.initVals], mqttClient=client)
+        self.flc = FLC_command.FLC_interface(serial_settings=self.serial_settings, settings=[self.port_settings], initVals=[self.initVals], mqttClient=client)
         self.flc.initialize_ADDrange(excel_address)
         self.flc.initialize_ports(excel_address)
         self.read_func = read_fun(self.flc, self.adc_range, self.port_settings)
@@ -587,7 +592,7 @@ class port():
             index = chip.index(channel)
             if not channel.hidden:
                 if channel.function == 'DAC':
-                    Widget1(frame, self.flc, self.initVals, self.dac_range, self.port_settings, channelN=index, chipname=chipname, label=channel.name, k=channel.k, c=channel.constant, init_value=channel.initValues, unit=channel.unit, column=channel.coordX+xplus, row=channel.coordY)
+                    Widget1(frame, flc=self.flc, initVals=self.initVals, dac_range=self.dac_range, minValue=channel.minValues, maxValue=channel.maxValues, port_settings=self.port_settings, channelN=index, chipname=chipname, label=channel.name, k=channel.k, c=channel.constant, init_value=channel.initValues, unit=channel.unit, column=channel.coordX+xplus, row=channel.coordY)
                    
                 elif channel.function == 'ADC':
                     readingBox = LabelEntry(frame, self.flc, self.adc_range, self.read_func, self.port_settings, channelN = index, chipname=chipname, label=channel.name, k=channel.k, c=channel.constant, isExp=channel.isExp, t0=channel.t0, b=channel.B, init_value=channel.initValues, unit=channel.unit, column=channel.coordX+xplus, row=channel.coordY)
@@ -609,7 +614,6 @@ class port():
         readData = read_fun(self.flc, self.adc_range, self.port_settings)
         if readData != PROCESS_FAILED:
             ADC_read, ADD1_read, ADD3_read, ADD4_read, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
-            # print('digs:', MCPdig, ADD1dig, ADD3dig, ADD4dig)
             print('ADD4read:', ADD4_read)
             print('ADD4dig:', ADD4dig)
         for box in self.readingBoxes:
@@ -619,7 +623,6 @@ class port():
             digitalButton.update_status(MCPdig, ADD1dig, ADD3dig, ADD4dig)
 
         if True:
-            # print(MCPdig, ADD1dig, ADD3dig, ADD4dig)
             self.parent.after(300, self.update_fun)
             
     def getXplus(self):
@@ -633,20 +636,12 @@ def scrollfunc(height, width):
 
 if __name__ == '__main__':
 
+    if FLC_command.connect_to_broker(FLC_command.client) == PROCESS_PASSED:
+        FLC_command.client.publish('test', "Raspberry Pi is alive.", qos=0)
+        FLC_command.client.publish('data',  'INIT', qos=0)
+        FLC_command.subscribe(FLC_command.client)
+        FLC_command.client.loop_start()
     
-    # client.on_connect = mqtt_connected
-
-
-    if connect_to_broker(client) == PROCESS_PASSED:
-        # print("Raspberry Pi is alive.")
-        client.publish('test', "Raspberry Pi is alive.", qos=0)
-        client.publish('data', 'INIT', qos=0)
-        subscribe(client)
-        client.loop_start()
-    else:
-        print(client.is_connected())
-
-    # print("Creating window")
     root = ctk.CTk()
     root.grid_rowconfigure(0, weight=1)
     root.columnconfigure(0, weight=1)
@@ -668,9 +663,8 @@ if __name__ == '__main__':
     canvas.create_window((0,0), window=widget_frame, anchor='nw')
         
     root.title('FLC controller')
-    serial_settings = FLC_command.serial_settings
-    # arduino = FLC_command.arduino
     xstep = 0
+
     with open("port_settings.yaml", "r") as file:
         ymldata = yaml.load(file, Loader=yaml.FullLoader)
     for key, value in ymldata.items():
@@ -685,17 +679,20 @@ if __name__ == '__main__':
         win = port(widget_frame, portnum, excel_address, xstep)
         xplus = win.getXplus()
         xstep += xplus
+
     widget_frame.update_idletasks()
     width = widget_frame.winfo_width()
     height = widget_frame.winfo_height()
     canvas.configure(width=width, height=height)
+
     if platform == 'win32':
         root.geometry(f'{width+scrollbar.winfo_width()}x{height}')
     elif platform == 'linux':
-        root.geometry(f'800x450') # for 7" raspberry touchscreen
+        root.geometry(f'800x420') # for 7" raspberry touchscreen
+
     topFrame.bind("<Configure>", scrollfunc(height, width))
     widths = []
+
     for i in widget_frame.winfo_children():
         widths.append(i)
-    # print("--- %s seconds ---" % (time.time() - start_time))
     root.mainloop()

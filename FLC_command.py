@@ -15,6 +15,10 @@ import threading
 #  GLOBAL VARIABLES
 #
 
+
+PROCESS_PASSED = 0
+PROCESS_FAILED = -1
+
 file_directory = dirname(abspath(__file__))
 os.chdir(file_directory)
 
@@ -22,7 +26,7 @@ alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N'
 add_chipnames = {'ADD1': 2, 'ADD3': 4, 'ADD4': 5}
 
 broker = '192.168.1.1'
-port = 1883
+broker_port = 1883
 topic = "+"
 client_id = "IDpython"
 transmit_ended_msg = "All sent."
@@ -57,34 +61,108 @@ read_data = {
 # APPLICATION 
 #
 
+if platform == "linux":
+    client = mqtt_client.Client(mqtt_client.CallbackAPIVersion.VERSION2, client_id)
+else:
+    client = mqtt_client.Client(client_id)
+
+
+def connect_to_broker(client: mqtt_client):
+    """ 
+        MQTT connect to broker function.
+    	
+        If broker is not yet initialized, this function starts it and then connects to it as a client.
+        Possible bug since the app is sometimes required to be opened twice instead of once. It seems
+        like the broker hijacks command line and stops the app execution.
+    """
+   
+    if platform == 'linux':
+        try:
+            import netifaces as ni
+
+            ni.ifaddresses('eth0')
+            ip = ni.ifaddresses('eth0')[ni.AF_INET][0]['addr']
+            print(ip)
+
+            if ip == broker:
+                try: 
+                    client.connect(broker, broker_port)
+                    print("Connected to broker.")
+                    return PROCESS_PASSED
+                except:
+                    os.system('mosquitto -c /etc/mosquitto/conf.d/mosquitto.conf')
+                    
+                    client.connect(broker, broker_port)
+                    print("Connected to broker.")
+                    return PROCESS_PASSED
+        except:
+            return PROCESS_FAILED
+    
+    else: 
+        try:
+            client.connect(broker, broker_port)
+            return PROCESS_PASSED
+        except:
+            return PROCESS_FAILED
+
+    return 0
+
+
+def subscribe(client: mqtt_client, topic='+'):
+    """
+        MQTT subscribe to topic function.
+
+        Subscribes the client to a + topic, which means the client subscribes to all the topics
+        available. Needs a remake if there is to be more than one specific device connected to
+        the broker and thus to the GUI.
+    """
+
+    def on_message(client, userdata, msg):
+        # print("In on_message")
+        if msg.topic == "ID1pub":
+            # print("On message.")
+            result = on_message_to_pub(client=client, userdata=userdata, message=msg)
+            if not result == None:
+                print(result)
+        elif msg.topic == "debug":
+            try:
+                print(f'Debug message: {msg.payload.decode()}')
+            except:
+                print(f"Error: Message payload cannot be decoded. [ {msg.payload} ]")
+               
+
+    client.subscribe(topic)
+    client.on_message = on_message
+    return
+
+
 def on_message_to_pub(client, userdata, message):
-    # print("On message.")
+    """
+        Decode function for received messages via MQTT.
+
+        Decodes the messages and writes the data in key:value pairse inside the dictionary.
+        Will also need a remake for it to work with multiple STMs.
+    """
+
     i = 0
     rec_message = message.payload
     try:
         if message.topic == "ID1pub":
             global comms_end_flag
             
-            # print(rec_message)
             while rec_message and not (b'A' <= rec_message[0:1] <= b'Z'):
                 rec_message = rec_message[1:]
-                # print(rec_message)
 
             msg = rec_message.decode()
-            # print(msg)    
 
             if transmit_ended_msg in msg:
-                # print("all sent")
                 comms_end_flag = 1
                 comms_end_event.set()
                 return 
             else:
                 comms_end_flag = 0
-                # print(f"Received: {msg}")
                 key = msg[0:5]
                 read_values[key] = msg[6:]
-                # if key == 'MCP0S':
-                #     print(f'{key} = {msg[6:]}')
                 return
             
     except Exception:
