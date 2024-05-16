@@ -351,6 +351,8 @@ class PortSetting:
         self.mcp_settings = collect_chip_function(collect_chip_data(mcp), 'setOperation', 'mcp')
         self.mcp_reversed = self.mcp_settings.copy()
         self.mcp_reversed.reverse()
+
+        print(self.add4_settings)
         
 
 @dataclass

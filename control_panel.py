@@ -688,7 +688,7 @@ if __name__ == '__main__':
     if platform == 'win32':
         root.geometry(f'{width+scrollbar.winfo_width()}x{height}')
     elif platform == 'linux':
-        root.geometry(f'800x420') # for 7" raspberry touchscreen
+        root.geometry(f'770x450') # for 7" raspberry touchscreen
 
     topFrame.bind("<Configure>", scrollfunc(height, width))
     widths = []
