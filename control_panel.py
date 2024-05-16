@@ -560,7 +560,7 @@ class port():
         self.port_settings.updateChipSettings(excel_address)
         self.initVals = FLC_command.PortInit()
         self.initVals.updateChipInitial(excel_address)
-        self.flc = FLC_command.FLC_interface(serial_settings=self.serial_settings, settings=[self.port_settings], initVals=[self.initVals], mqttClient=client)
+        self.flc = FLC_command.FLC_interface(serial_settings=self.serial_settings, settings=[self.port_settings], initVals=[self.initVals])
         self.flc.initialize_ADDrange(excel_address)
         self.flc.initialize_ports(excel_address)
         self.read_func = read_fun(self.flc, self.adc_range, self.port_settings)

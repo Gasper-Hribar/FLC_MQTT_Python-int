@@ -369,10 +369,10 @@ class PortInit:
 
 
 class FLC_interface:
-    def __init__(self, serial_settings:SerialSettings, settings:list[PortSetting], initVals:list[PortInit], mqttClient):
+    def __init__(self, serial_settings:SerialSettings, settings:list[PortSetting], initVals:list[PortInit]):
         self.settings = settings
         self.initVals = initVals
-        self.mqtt_client = mqttClient
+        self.mqtt_client = client
 
     def initialize_ADDrange(self, excel_address):
         dac_range, adc_range = collect_range_data(excel_address)
