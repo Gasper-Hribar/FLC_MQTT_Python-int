@@ -352,7 +352,7 @@ class PortSetting:
         self.mcp_reversed = self.mcp_settings.copy()
         self.mcp_reversed.reverse()
 
-        print(self.add4_settings)
+        print("ADD4 settings: ", self.add4_settings)
         
 
 @dataclass

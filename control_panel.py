@@ -506,7 +506,7 @@ class Widget1:
         self.noStepSelected = False
         self.increment.set(float(self.combobox.get()))
         # self.combobox.set(f"{self.increment.get()}")
-        print("Increment:", self.increment.get())
+        # print("Increment:", self.increment.get())
 
 
     def convert_voltage(self, voltage):
@@ -614,8 +614,8 @@ class port():
         readData = read_fun(self.flc, self.adc_range, self.port_settings)
         if readData != PROCESS_FAILED:
             ADC_read, ADD1_read, ADD3_read, ADD4_read, MCPdig, ADD1dig, ADD3dig, ADD4dig = [readData[key] for key in read_values_keys]
-            print('ADD4read:', ADD4_read)
-            print('ADD4dig:', ADD4dig)
+            # print('ADD4read:', ADD4_read)
+            # print('ADD4dig:', ADD4dig)
         for box in self.readingBoxes:
             box.update(ADC_read, ADD1_read, ADD3_read, ADD4_read)
             
