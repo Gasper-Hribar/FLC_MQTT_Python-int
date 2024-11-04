@@ -139,7 +139,7 @@ def on_message_to_pub(client, userdata, message):
     """
         Decode function for received messages via MQTT.
 
-        Decodes the messages and writes the data in key:value pairse inside the dictionary.
+        Decodes the messages and writes the data in key:value pairs inside the dictionary.
         Will also need a remake for it to work with multiple STMs.
     """
 
